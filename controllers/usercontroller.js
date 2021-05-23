@@ -1,51 +1,65 @@
-var router = Router();
-var bcrypt = require('bcrypt');
-var jwt = require('jsonwebtoken');
+const router = require('express').Router();
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
-var User = require('../db').import('../models/user');
+const {User} = require('../db');
 
-router.post('/signup', (req, res) => {
-    User.create({
-        full_name: req.body.user.full_name,
-        username: req.body.user.username,
-        passwordhash: bcrypt.hashSync(req.body.user.password, 10),
-        email: req.body.user.email,
+User.sync().then(() => {
+  console.log('User created');
+});
+router.post('/signup', async (req, res) => {
+  const salt = await bcrypt.genSaltSync(5);
+  User.create({
+    full_name: req.body.user.full_name,
+    username: req.body.user.username,
+    passwordhash: bcrypt.hashSync(req.body.user.passwordhash, salt),
+    email: req.body.user.email,
+  })
+    .then((user) => {
+      const token = jwt.sign({id: user.id}, process.env.SECRET_TOKEN, {
+        expiresIn: 60 * 60 * 24,
+      });
+      res.status(200).send({token, user});
     })
-        .then(
-            function signupSuccess(user) {
-                let token = jwt.sign({ id: user.id }, 'lets_play_sum_games_man', { expiresIn: 60 * 60 * 24 });
-                res.status(200).json({
-                    user: user,
-                    token: token
-                })
-            },
+    .catch((err) => {
+      res.status(500).send({
+        message: err.message,
+      });
+    });
+});
 
-            function signupFail(err) {
-                res.status(500).send(err.message)
-            }
-        )
-})
+router.get('/user/:id', async (req, res) => {
+  await User.findByPk(req.params.id).then((user) => {
+    console.log('USER', user.id);
+    res.send('done')
+  });
+});
 
 router.post('/signin', (req, res) => {
-    User.findOne({ where: { username: req.body.user.username } }).then(user => {
-        if (user) {
-            bcrypt.compare(req.body.user.password, user.passwordHash, function (err, matches) {
-                if (matches) {
-                    var token = jwt.sign({ id: user.id }, 'lets_play_sum_games_man', { expiresIn: 60 * 60 * 24 });
-                    res.json({
-                        user: user,
-                        message: "Successfully authenticated.",
-                        sessionToken: token
-                    });
-                } else {
-                    res.status(502).send({ error: "Passwords do not match." })
-                }
+  User.findOne({where: {username: req.body.user.username}}).then((user) => {
+    if (user) {
+      bcrypt.compare(
+        req.body.user.passwordhash,
+        user.passwordhash,
+        function (err, matches) {
+          if (matches) {
+            const token = jwt.sign({id: user.id}, process.env.SECRET_TOKEN, {
+              expiresIn: 60 * 60 * 24,
             });
-        } else {
-            res.status(403).send({ error: "User not found." })
+            res.json({
+              user: user,
+              message: 'Successfully authenticated.',
+              sessionToken: token,
+            });
+          } else {
+            res.status(502).send({error: 'Passwords do not match.'});
+          }
         }
-
-    })
-})
+      );
+    } else {
+      res.status(403).send({error: 'User not found.'});
+    }
+  });
+});
 
 module.exports = router;
