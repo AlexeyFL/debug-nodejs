@@ -7,25 +7,23 @@ Game.sync().then(() => {
   console.log('Game created');
 });
 
-router.get('/all', (req, res) => {
-  Game.findAll({where: {owner_id: req.user.id}}).then(
-    function findSuccess(data) {
+router.get('/all', async (req, res) => {
+  await Game.findAll({where: {title: " Title 3"}}).then(
+    (data) => {
       res.status(200).json({
         games: games,
         message: 'Data fetched.',
       });
-    },
-
-    function findFail() {
-      res.status(500).json({
-        message: 'Data not found',
-      });
     }
-  );
+  ).catch((err) => {
+    res.status(500).json({
+      message: 'Data not found',
+    });
+  });
 });
 
-router.get('/:id', (req, res) => {
-  Game.findOne({where: {id: req.params.id, owner_id: req.user.id}}).then(
+router.get('/:id', async (req, res) => {
+  await Game.findOne({where: {id: req.query.id, owner_id: req.query.user.id}}).then(
     function findSuccess(game) {
       res.status(200).json({
         game: game,
@@ -58,10 +56,6 @@ router.post('/create', async (req, res) => {
         const token = jwt.sign({id: req.body.user.id}, process.env.SECRET_TOKEN, {
             expiresIn: 60 * 60 * 24,
           });
-        /* res.status(200).json({
-          game: game,
-          message: 'Game created.',
-        }).send({token, game}); */
         res.send({token, game});
 
       }
