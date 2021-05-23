@@ -6,6 +6,9 @@ For usage you need postgresql and npm i
 
 ## Usage
 Send for user
+
+* Signup {POST} http://localhost:4000/api/auth/signup
+* Signin {POST} http://localhost:4000/api/auth/signin
 ```javascript
 {
     "user": {
@@ -17,6 +20,13 @@ Send for user
 } 
 ```
 Send for game
+
+
+* Create {POST} http://localhost:4000/api/game/create
+* Update {PUT} http://localhost:4000/api/game/update/{id}
+* Get game {GET} http://localhost:4000/api/game/{id}
+* Get All game {GET} http://localhost:4000/api/game/all
+* Delete {DELETE} http://localhost:4000/api/game/{id}
 ```javascript
 {
     "game": {
