@@ -8,42 +8,33 @@ Game.sync().then(() => {
 });
 
 router.get('/all', async (req, res) => {
-  await Game.findAll({where: {title: " Title 3"}}).then(
-    (data) => {
-      res.status(200).json({
-        games: games,
-        message: 'Data fetched.',
-      });
-    }
-  ).catch((err) => {
-    res.status(500).json({
-      message: 'Data not found',
-    });
+  const games = await Game.findAll();
+
+  res.status(200).json({
+    games,
   });
+
 });
 
 router.get('/:id', async (req, res) => {
-  await Game.findOne({where: {id: req.query.id, owner_id: req.query.user.id}}).then(
-    function findSuccess(game) {
+  console.log(req);
+  await Game.findOne({
+    where: {id: req.params.id, owner_id: req.body.user.id},
+  })
+    .then((game) => {
       res.status(200).json({
         game: game,
       });
-    },
-
-    function findFail(err) {
+    })
+    .catch((err) => {
       res.status(500).json({
         message: 'Data not found.',
       });
-    }
-  );
+    });
 });
 
 router.post('/create', async (req, res) => {
-  console.log('User from game', User);
- await User.findByPk(req.body.user.id).then((data)=>{
-      console.log(data)
-  })
-  Game.create({
+  await Game.create({
     title: req.body.game.title,
     owner_id: req.body.user.id,
     studio: req.body.game.studio,
@@ -51,23 +42,21 @@ router.post('/create', async (req, res) => {
     user_rating: req.body.game.user_rating,
     have_played: req.body.game.have_played,
   })
-    .then(
-      (game) => {
-        const token = jwt.sign({id: req.body.user.id}, process.env.SECRET_TOKEN, {
-            expiresIn: 60 * 60 * 24,
-          });
-        res.send({token, game});
-
-      }
-    ).catch(err => {
-        res.status(500).send({
-            message: err.message
-        })
+    .then((game) => {
+      const token = jwt.sign({id: req.body.user.id}, process.env.SECRET_TOKEN, {
+        expiresIn: 60 * 60 * 24,
+      });
+      res.send({token, game});
+    })
+    .catch((err) => {
+      res.status(500).send({
+        message: err.message,
+      });
     });
 });
 
-router.put('/update/:id', (req, res) => {
-  Game.update(
+router.put('/update/:id', async (req, res) => {
+  await Game.update(
     {
       title: req.body.game.title,
       studio: req.body.game.studio,
@@ -78,45 +67,40 @@ router.put('/update/:id', (req, res) => {
     {
       where: {
         id: req.params.id,
-        owner_id: req.user,
+        owner_id: req.body.user.id,
       },
     }
-  ).then(
-    function updateSuccess(game) {
+  )
+    .then((game) => {
       res.status(200).json({
         game: game,
         message: 'Successfully updated.',
       });
-    },
-
-    function updateFail(err) {
+    })
+    .catch((err) => {
       res.status(500).json({
         message: err.message,
       });
-    }
-  );
+    });
 });
 
-router.delete('/remove/:id', (req, res) => {
-  Game.destroy({
+router.delete('/remove/:id', async (req, res) => {
+  await Game.destroy({
     where: {
       id: req.params.id,
-      owner_id: req.user.id,
     },
-  }).then(
-    function deleteSuccess(game) {
+  })
+    .then((game) => {
       res.status(200).json({
         game: game,
         message: 'Successfully deleted',
       });
-    },
-
-    function deleteFail(err) {
+    })
+    .catch((err) => {
       res.status(500).json({
         error: err.message,
       });
-    }
-  );
+    });
 });
 
 module.exports = router;
