@@ -4,29 +4,35 @@ const jwt = require('jsonwebtoken');
 
 const {User} = require('../db');
 
-User.sync({force: true}).then(() => {
-  console.log('created');
+User.sync().then(() => {
+  console.log('User created');
 });
 router.post('/signup', async (req, res) => {
-    const salt = await bcrypt.genSaltSync(5)
-    console.log(salt)
+  const salt = await bcrypt.genSaltSync(5);
   User.create({
     full_name: req.body.user.full_name,
     username: req.body.user.username,
-    passwordhash:  bcrypt.hashSync(req.body.user.passwordhash, salt),
+    passwordhash: bcrypt.hashSync(req.body.user.passwordhash, salt),
     email: req.body.user.email,
-  }).then(
-     (user) => {
+  })
+    .then((user) => {
       const token = jwt.sign({id: user.id}, process.env.SECRET_TOKEN, {
         expiresIn: 60 * 60 * 24,
       });
-      res.status(200).send({ token, user })
-    }
-  ).catch(err => {
+      res.status(200).send({token, user});
+    })
+    .catch((err) => {
       res.status(500).send({
-          message: err.message
-      })
-  })
+        message: err.message,
+      });
+    });
+});
+
+router.get('/user/:id', async (req, res) => {
+  await User.findByPk(req.params.id).then((user) => {
+    console.log('USER', user.id);
+    res.send('done')
+  });
 });
 
 router.post('/signin', (req, res) => {
@@ -57,5 +63,3 @@ router.post('/signin', (req, res) => {
 });
 
 module.exports = router;
-
-
